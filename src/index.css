@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ──────────────────────────────────────────────────────────────
+   Lokale fonts — PP Right Grotesk
+   Plaats de bestanden in /public/fonts/ met onderstaande namen.
+   Zolang ze ontbreken valt de app netjes terug op system-ui.
+   ────────────────────────────────────────────────────────────── */
+@font-face {
+  font-family: 'PPRightGrotesk-WideMedium';
+  src: url('/fonts/PPRightGrotesk-WideMedium.woff2') format('woff2'),
+       url('/fonts/PPRightGrotesk-WideMedium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PPRightGrotesk-Medium';
+  src: url('/fonts/PPRightGrotesk-Medium.woff2') format('woff2'),
+       url('/fonts/PPRightGrotesk-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'PPRightGrotesk-Light';
+  src: url('/fonts/PPRightGrotesk-Light.woff2') format('woff2'),
+       url('/fonts/PPRightGrotesk-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  /* Diep-donker canvas met subtiele paars/roze gloed */
+  background-color: #0b0712;
+  background-image:
+    radial-gradient(120% 80% at 50% -10%, #1f1530 0%, transparent 55%),
+    radial-gradient(90% 60% at 100% 110%, #1a1426 0%, transparent 60%);
+  background-attachment: fixed;
+  color: #f3eeff;
+  font-family: 'PPRightGrotesk-Light', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+}
+
+/* Globale font-weight bump — alles een tandje bolder/steviger */
+.font-wide {
+  font-weight: 700;
+}
+.font-medium {
+  font-weight: 600;
+}
+.font-light {
+  font-weight: 400;
+}
+
+/* Verberg scrollbars op de horizontale tijdlijn maar houd scroll-snap */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
