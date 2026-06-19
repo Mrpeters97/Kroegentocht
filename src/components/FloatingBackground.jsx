@@ -2,11 +2,14 @@ import { motion } from 'framer-motion'
 import Garland from './Garland'
 
 // Zachte, onscherpe gloed-blobs voor diepte (ver weg).
+// Let op: een bewegende blob met grote blur-radius is op mobiel erg duur
+// (elke frame een grote repaint). We houden de blur daarom gematigd en
+// leunen op de lage opacity + grote 'size' voor de zachte gloed.
 const BLOBS = [
-  { x: '-12%', y: '6%', size: 240, color: '#B85C8E', blur: 95, dur: 17, drift: 36, op: 0.16 },
-  { x: '72%', y: '2%', size: 180, color: '#5E7FB8', blur: 85, dur: 14, drift: -30, op: 0.14 },
-  { x: '78%', y: '60%', size: 260, color: '#7A5FB0', blur: 115, dur: 20, drift: 28, op: 0.16 },
-  { x: '-8%', y: '66%', size: 200, color: '#A86A9A', blur: 100, dur: 16, drift: -26, op: 0.14 },
+  { x: '-12%', y: '6%', size: 240, color: '#B85C8E', blur: 48, dur: 17, drift: 36, op: 0.16 },
+  { x: '72%', y: '2%', size: 180, color: '#5E7FB8', blur: 44, dur: 14, drift: -30, op: 0.14 },
+  { x: '78%', y: '60%', size: 260, color: '#7A5FB0', blur: 56, dur: 20, drift: 28, op: 0.16 },
+  { x: '-8%', y: '66%', size: 200, color: '#A86A9A', blur: 50, dur: 16, drift: -26, op: 0.14 },
 ]
 
 // Echte, zichtbare 3D-ballonnen (lichaam + knoopje + touwtje).
@@ -25,7 +28,7 @@ function Balloon({ x, y, size, color, dark, dur, delay, rot, blur }) {
   return (
     <motion.div
       className="absolute"
-      style={{ left: x, top: y, filter: blur ? `blur(${blur}px)` : undefined }}
+      style={{ left: x, top: y, filter: blur ? `blur(${blur}px)` : undefined, willChange: 'transform' }}
       animate={{ y: [0, -22, 0], x: [0, 7, 0, -7, 0], rotate: [rot - 5, rot + 5, rot - 5] }}
       transition={{ duration: dur, repeat: Infinity, ease: 'easeInOut', delay }}
     >
@@ -89,6 +92,7 @@ export default function FloatingBackground() {
             background: b.color,
             filter: `blur(${b.blur}px)`,
             opacity: b.op,
+            willChange: 'transform',
           }}
           animate={{ y: [0, b.drift, 0], x: [0, b.drift * 0.4, 0] }}
           transition={{ duration: b.dur, repeat: Infinity, ease: 'easeInOut' }}

@@ -76,13 +76,14 @@ export default function FoilBalloonLogo() {
         </span>
       </motion.div>
 
-      {/* Zwevende avatar, asynchroon t.o.v. de ballon */}
+      {/* Zwevend hoofd mét feesthoedje, asynchroon t.o.v. de ballon.
+          Groter en meer náást de 29 geplaatst. */}
       <motion.div
         animate={{ y: [0, -14, 0], x: [0, -5, 0, 5, 0], rotate: [-8, 8, -6, 6, -8] }}
         transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-        className="absolute -bottom-2 -right-5 z-10"
+        className="absolute -bottom-1 -right-16 z-10"
       >
-        <FloatingHead size={56} src="/images/image_29a5ca.jpg" />
+        <FloatingHead size={92} src="/images/jarige.png" hat />
       </motion.div>
     </div>
   )

@@ -9,68 +9,95 @@ const STATUS = {
 }
 
 // Pulserend rondje bij de actieve kroeg.
+// CSS-animatie i.p.v. framer-motion: draait op de compositor, knippert
+// gegarandeerd oneindig door en hapert niet wanneer de hoofd-thread
+// het druk heeft.
 function PulsingDot() {
   return (
     <span className="relative flex h-2 w-2">
-      <motion.span
-        className="absolute inset-0 rounded-full bg-white"
-        animate={{ scale: [1, 2.6], opacity: [0.7, 0] }}
-        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
-      />
+      <span className="pulse-ring absolute inset-0 rounded-full bg-white" />
       <span className="relative h-2 w-2 rounded-full bg-white" />
     </span>
   )
 }
 
+// De kaart glijdt weg aan de kant waarheen je swipet en de volgende
+// komt van de andere kant binnen. We animeren alleen 'x' (transform),
+// zónder opacity op de enter — zo blijft de backdrop-blur op iOS/Safari
+// meteen zichtbaar i.p.v. pas ná de animatie "in te springen".
+const cardVariants = {
+  enter: (dir) => ({ x: dir >= 0 ? '110%' : '-110%' }),
+  center: { x: 0 },
+  exit: (dir) => ({ x: dir >= 0 ? '-110%' : '110%', opacity: 0 }),
+}
+
 // Glassmorphism hero-kaart voor de geselecteerde/actieve kroeg.
-export default function ActiveStopCard({ stop, index, total }) {
+export default function ActiveStopCard({ stop, index, total, direction = 1, onSwipe }) {
   const status = STATUS[stop.status] ?? STATUS.upcoming
 
+  // Swipe-detectie: genoeg horizontale verplaatsing óf snelheid telt.
+  const handleDragEnd = (_, info) => {
+    const { offset, velocity } = info
+    if (offset.x < -60 || velocity.x < -500) onSwipe?.(1)
+    else if (offset.x > 60 || velocity.x > 500) onSwipe?.(-1)
+  }
+
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" custom={direction} initial={false}>
       <motion.section
         key={stop.id}
-        initial={{ opacity: 0, y: 22, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -22, scale: 0.97 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        custom={direction}
+        variants={cardVariants}
+        initial="enter"
+        animate="center"
+        exit="exit"
+        transition={{ duration: 0.46, ease: [0.22, 1, 0.36, 1] }}
+        style={{ willChange: 'transform' }}
         className="mx-auto w-full max-w-md px-5"
+        // Sleep horizontaal om naar de vorige/volgende stop te gaan.
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.18}
+        onDragEnd={handleDragEnd}
       >
-        <div className="rounded-[28px] border border-white/20 bg-white/[0.09] p-7 text-center shadow-glass backdrop-blur-xl">
-          {/* Kop: index + status */}
-          <div className="mb-5 flex items-center justify-between">
-            <span className="font-light text-[12px] uppercase tracking-[0.18em] text-ink/60">
-              Stop {index + 1} / {total}
-            </span>
-            <span
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1 font-medium text-[11px] uppercase tracking-wider ${status.className}`}
-            >
-              {status.dot && <PulsingDot />}
-              {status.text}
-            </span>
-          </div>
+        <div className="rounded-[28px] border border-white/20 bg-white/[0.09] p-7 text-center shadow-glass backdrop-blur-md">
+          {/* Inhoud fadet in; het glass-paneel eromheen is meteen volledig
+              zichtbaar, dus de blur is direct aanwezig. */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.06 }}>
+            {/* Kop: index + status */}
+            <div className="mb-5 flex items-center justify-between">
+              <span className="font-light text-[12px] uppercase tracking-[0.18em] text-ink/60">
+                Stop {index + 1} / {total}
+              </span>
+              <span
+                className={`flex items-center gap-1.5 rounded-full px-3 py-1 font-medium text-[11px] uppercase tracking-wider ${status.className}`}
+              >
+                {status.dot && <PulsingDot />}
+                {status.text}
+              </span>
+            </div>
 
-          {/* Naam */}
-          <h2 className="font-wide text-[34px] leading-[1.05] tracking-tight text-ink">
-            {stop.name}
-          </h2>
+            {/* Naam */}
+            <h2 className="font-wide text-[34px] leading-[1.05] tracking-tight text-ink">
+              {stop.name}
+            </h2>
 
-          {/* Adres + tijd */}
-          <div className="mt-4 flex flex-col items-center gap-1.5">
-            <p className="flex items-center gap-2 font-light text-[15px] text-ink/70">
-              <MapPin size={15} className="text-candy" />
-              {stop.address}
-            </p>
-            <p className="flex items-center gap-2 font-light text-[15px] text-ink/70">
-              <Clock size={15} className="text-candy" />
-              {stop.startTime} – {stop.endTime}
-            </p>
-          </div>
+            {/* Adres + tijd (± want het is een geschatte aankomsttijd) */}
+            <div className="mt-4 flex flex-col items-center gap-1.5">
+              <p className="flex items-center gap-2 font-light text-[15px] text-ink/70">
+                <MapPin size={15} className="text-candy" />
+                {stop.address}
+              </p>
+              <p className="flex items-center gap-2 font-light text-[15px] text-ink/70">
+                <Clock size={15} className="text-candy" />± {stop.startTime}
+              </p>
+            </div>
 
-          {/* Check-in */}
-          <div className="mt-7">
-            <PhotoCheckIn stop={stop} />
-          </div>
+            {/* Check-in */}
+            <div className="mt-7">
+              <PhotoCheckIn stop={stop} />
+            </div>
+          </motion.div>
         </div>
       </motion.section>
     </AnimatePresence>

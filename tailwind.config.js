@@ -19,9 +19,13 @@ export default {
         lilac: '#C9B8FF',
       },
       fontFamily: {
-        wide: ['PPRightGrotesk-WideMedium', 'system-ui', 'sans-serif'],
-        medium: ['PPRightGrotesk-Medium', 'system-ui', 'sans-serif'],
-        light: ['PPRightGrotesk-Light', 'system-ui', 'sans-serif'],
+        // Overal de Wide-variant van PP Right Grotesk. De verschillende
+        // 'gewichten' (medium/light) komen uit font-weight, niet uit een
+        // aparte (smalle) font-family.
+        // Alleen 'wide' (titels) gebruikt de brede cut; de rest gewone breedte.
+        wide: ['PPRightGrotesk-Wide', 'system-ui', 'sans-serif'],
+        medium: ['PPRightGrotesk', 'system-ui', 'sans-serif'],
+        light: ['PPRightGrotesk', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         polaroid: '0 16px 36px rgba(0,0,0,0.6)',

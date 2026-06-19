@@ -39,6 +39,27 @@ function hashCode(str) {
   for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i)
   return h
 }
+
+// ── Persistente foto-opslag (overleeft refresh) ─────────────────
+// We bewaren alleen een { stopId: fotoDataURL } map, geen volledige
+// stop-objecten. Zo blijft het robuust als de route (ids/tijden) wijzigt.
+const PHOTOS_KEY = 'verjaardag.photos.v1'
+
+function loadPhotos() {
+  try {
+    return JSON.parse(localStorage.getItem(PHOTOS_KEY)) || {}
+  } catch {
+    return {}
+  }
+}
+
+function savePhotos(map) {
+  try {
+    localStorage.setItem(PHOTOS_KEY, JSON.stringify(map))
+  } catch {
+    // localStorage vol of niet beschikbaar — stilletjes negeren.
+  }
+}
 function escapeXml(s) {
   return s.replace(/[<>&'"]/g, (c) =>
     ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]),
@@ -46,13 +67,17 @@ function escapeXml(s) {
 }
 
 export function RouteProvider({ children }) {
-  const [stops, setStops] = useState(() => STOPS.map((s) => ({ ...s })))
+  // Herstel eerder gemaakte foto's uit localStorage bij het opstarten.
+  const [stops, setStops] = useState(() => {
+    const saved = loadPhotos()
+    return STOPS.map((s) => ({ ...s, photoCaptured: saved[s.id] || s.photoCaptured }))
+  })
 
   // ── Tijd-bron ────────────────────────────────────────────────
-  // mockMinutes = null  → echte systeemtijd (productie)
-  // mockMinutes = getal → gesimuleerde tijd in minuten sinds 19:00
+  // mockMinutes = null  → echte systeemtijd (productie, standaard)
+  // mockMinutes = getal → gesimuleerde tijd in minuten sinds 20:00
   //                       (handig om de tocht te demonstreren)
-  const [mockMinutes, setMockMinutes] = useState(0)
+  const [mockMinutes, setMockMinutes] = useState(null)
   const [tick, setTick] = useState(0)
 
   // Tikker zodat de UI mee-ademt met de tijd (elke 15s bij echte tijd).
@@ -64,8 +89,8 @@ export function RouteProvider({ children }) {
 
   const projectedNow = useMemo(() => {
     if (mockMinutes === null) return projectNow(new Date())
-    // Mock: 19:00 + mockMinutes
-    return new Date(toDate('19:00').getTime() + mockMinutes * 60000)
+    // Mock: 20:00 + mockMinutes
+    return new Date(toDate('20:00').getTime() + mockMinutes * 60000)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mockMinutes, tick])
 
@@ -116,12 +141,24 @@ export function RouteProvider({ children }) {
   const isFinished = groupPosition.mode === 'finished'
 
   // ── Acties ───────────────────────────────────────────────────
-  const checkInPhoto = useCallback((stopId) => {
-    setStops((prev) =>
-      prev.map((s) =>
-        s.id === stopId ? { ...s, photoCaptured: makePlaceholderPhoto(s) } : s,
-      ),
-    )
+  // Sla een foto op bij een stop. Geef je een echte foto mee (data-URL
+  // uit de camera), dan gebruiken we die; anders een kleurrijke
+  // placeholder (handig in demo-modus zonder camera).
+  const checkInPhoto = useCallback((stopId, photo) => {
+    setStops((prev) => {
+      const next = prev.map((s) =>
+        s.id === stopId
+          ? { ...s, photoCaptured: photo || makePlaceholderPhoto(s) }
+          : s,
+      )
+      // Bewaar de actuele foto-map zodat alles een refresh overleeft.
+      const map = {}
+      next.forEach((s) => {
+        if (s.photoCaptured) map[s.id] = s.photoCaptured
+      })
+      savePhotos(map)
+      return next
+    })
   }, [])
 
   const capturedPhotos = useMemo(

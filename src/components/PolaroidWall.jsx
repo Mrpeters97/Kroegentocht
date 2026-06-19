@@ -14,7 +14,7 @@ export default function PolaroidWall() {
     capturedPhotos.forEach((s, i) => {
       const a = document.createElement('a')
       a.href = s.photoCaptured
-      a.download = `verjaardagstocht-${i + 1}-${s.id}.svg`
+      a.download = `verjaardagstocht-${i + 1}-${s.id}.jpg`
       a.click()
     })
   }

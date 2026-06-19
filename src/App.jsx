@@ -6,7 +6,6 @@ import LiveEtaBar from './components/LiveEtaBar'
 import ActiveStopCard from './components/ActiveStopCard'
 import Timeline from './components/Timeline'
 import PolaroidWall from './components/PolaroidWall'
-import DemoTimeControl from './components/DemoTimeControl'
 import FloatingBackground from './components/FloatingBackground'
 
 function RouteScreen() {
@@ -14,6 +13,9 @@ function RouteScreen() {
   const [selectedId, setSelectedId] = useState(stops[0]?.id)
   // Volg automatisch de groep, tenzij de gebruiker zelf navigeert.
   const [following, setFollowing] = useState(true)
+  // Richting van de laatste navigatie: +1 vooruit, -1 terug.
+  // Bepaalt naar welke kant de kaart wegglijdt bij het wisselen.
+  const [direction, setDirection] = useState(1)
 
   useEffect(() => {
     if (following && groupPosition?.stop) {
@@ -21,13 +23,27 @@ function RouteScreen() {
     }
   }, [following, groupPosition])
 
-  const handleSelect = (id) => {
+  const selectedIndex = stops.findIndex((s) => s.id === selectedId)
+  const selectedStop = stops[selectedIndex] ?? stops[0]
+
+  // Centrale selectie: leidt de richting af uit het index-verschil.
+  const selectStop = (id) => {
+    const curr = stops.findIndex((s) => s.id === selectedId)
+    const next = stops.findIndex((s) => s.id === id)
+    if (next === -1 || next === curr) return
+    setDirection(next > curr ? 1 : -1)
     setFollowing(false)
     setSelectedId(id)
   }
 
-  const selectedIndex = stops.findIndex((s) => s.id === selectedId)
-  const selectedStop = stops[selectedIndex] ?? stops[0]
+  const handleSelect = (id) => selectStop(id)
+
+  // Swipe op de kaart: ga naar de vorige/volgende stop (timeline volgt mee).
+  const goRelative = (delta) => {
+    const idx = stops.findIndex((s) => s.id === selectedId)
+    const nextIdx = Math.min(stops.length - 1, Math.max(0, idx + delta))
+    if (nextIdx !== idx) selectStop(stops[nextIdx].id)
+  }
 
   return (
     <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-base text-ink">
@@ -60,7 +76,13 @@ function RouteScreen() {
             className="flex flex-1 flex-col justify-between overflow-hidden"
           >
             <div className="flex flex-1 items-center pt-4">
-              <ActiveStopCard stop={selectedStop} index={selectedIndex} total={stops.length} />
+              <ActiveStopCard
+                stop={selectedStop}
+                index={selectedIndex}
+                total={stops.length}
+                direction={direction}
+                onSwipe={goRelative}
+              />
             </div>
 
             {!following && (
@@ -76,8 +98,6 @@ function RouteScreen() {
           </motion.main>
         )}
       </AnimatePresence>
-
-      <DemoTimeControl />
       </div>
     </div>
   )

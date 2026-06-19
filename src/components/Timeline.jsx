@@ -1,5 +1,4 @@
 import { useRef, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { Check } from 'lucide-react'
 
 // Horizontale tijdlijn met pastel stippellijn + bolletjes.
@@ -49,36 +48,26 @@ export default function Timeline({ stops, selectedId, onSelect }) {
                 />
               )}
 
-              {/* Bol */}
-              <motion.span
+              {/* Bol — CSS-animaties (compositor) zodat de actieve puls
+                  vloeiend en oneindig blijft knipperen zonder hapering. */}
+              <span
                 className={`relative z-10 flex h-[52px] w-[52px] items-center justify-center rounded-full border ${
                   isActive
-                    ? 'border-white/30 bg-candy text-white shadow-candy'
+                    ? 'dot-breathe border-white/30 bg-candy text-white shadow-candy'
                     : done
                       ? 'border-candy/40 bg-candy/15 text-candy'
                       : isSelected
                         ? 'border-candy/60 bg-white/10 text-ink'
                         : 'border-white/15 bg-white/[0.05] text-ink/40'
-                } backdrop-blur-sm`}
-                animate={
-                  isActive
-                    ? { scale: [1, 1.12, 1] }
-                    : { scale: isSelected ? 1.06 : 1 }
-                }
-                transition={
-                  isActive
-                    ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' }
-                    : { duration: 0.25 }
-                }
-                style={{ opacity: isPast && !isSelected && !done ? 0.5 : 1 }}
+                } backdrop-blur-sm transition-transform duration-200`}
+                style={{
+                  opacity: isPast && !isSelected && !done ? 0.5 : 1,
+                  transform: !isActive && isSelected ? 'scale(1.06)' : undefined,
+                }}
               >
                 {/* Pulserende ring bij actief */}
                 {isActive && (
-                  <motion.span
-                    className="absolute inset-0 rounded-full bg-candy"
-                    animate={{ scale: [1, 1.7], opacity: [0.45, 0] }}
-                    transition={{ duration: 1.8, repeat: Infinity, ease: 'easeOut' }}
-                  />
+                  <span className="pulse-ring-lg absolute inset-0 rounded-full bg-candy" />
                 )}
 
                 {done ? (
@@ -100,16 +89,16 @@ export default function Timeline({ stops, selectedId, onSelect }) {
                     }`}
                   />
                 )}
-              </motion.span>
+              </span>
 
-              {/* Tijd-label */}
+              {/* Tijd-label (± want geschatte aankomsttijd) */}
               <span
                 className={`mt-2 font-light text-[11px] ${
                   isActive ? 'font-medium text-candy' : 'text-ink/50'
                 }`}
                 style={{ opacity: isPast && !isSelected && !done ? 0.5 : 1 }}
               >
-                {stop.startTime}
+                ± {stop.startTime}
               </span>
             </button>
           )

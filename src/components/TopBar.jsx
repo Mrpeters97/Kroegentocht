@@ -15,9 +15,9 @@ export default function TopBar() {
       </div>
 
       {/* Grote, gestapelde caps-titel — schuift met negatieve marge onder de ballon */}
-      <h1 className="relative z-0 -mt-5 text-center font-wide font-bold uppercase leading-[0.92] tracking-[0.02em] text-ink">
-        <span className="block text-[38px]">Verjaardags</span>
-        <span className="block text-[38px]">Kroegentocht</span>
+      <h1 className="title-fat relative z-0 -mt-5 text-center font-wide font-bold uppercase leading-[0.92] tracking-[0.02em] text-ink">
+        <span className="block text-[42px]">Verjaardags</span>
+        <span className="block text-[42px]">Kroegentocht</span>
       </h1>
     </motion.header>
   )
