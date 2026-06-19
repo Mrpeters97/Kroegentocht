@@ -1,6 +1,42 @@
+import { useLayoutEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MapPin, Clock } from 'lucide-react'
 import PhotoCheckIn from './PhotoCheckIn'
+
+// Kroegnaam-titel die zichzelf verkleint zodat hij altijd op één regel past
+// (en de content eronder dus niet wegduwt). Begint op de maximale grootte en
+// schaalt het lettertype omlaag tot de tekst binnen de kaartbreedte valt.
+function StopTitle({ name }) {
+  const ref = useRef(null)
+  const MAX = 34
+  const MIN = 18
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const fit = () => {
+      el.style.fontSize = `${MAX}px`
+      const avail = el.clientWidth
+      const needed = el.scrollWidth
+      if (needed > avail && avail > 0) {
+        const next = Math.max(MIN, Math.floor((MAX * avail) / needed))
+        el.style.fontSize = `${next}px`
+      }
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [name])
+
+  return (
+    <h2
+      ref={ref}
+      className="overflow-hidden whitespace-nowrap font-wide leading-[1.05] tracking-tight text-ink"
+      style={{ fontSize: MAX }}
+    >
+      {name}
+    </h2>
+  )
+}
 
 const STATUS = {
   active: { text: 'Nu actief', className: 'bg-candy text-white shadow-candy', dot: true },
@@ -77,10 +113,8 @@ export default function ActiveStopCard({ stop, index, total, direction = 1, onSw
               </span>
             </div>
 
-            {/* Naam */}
-            <h2 className="font-wide text-[34px] leading-[1.05] tracking-tight text-ink">
-              {stop.name}
-            </h2>
+            {/* Naam — verkleint automatisch om op één regel te blijven */}
+            <StopTitle name={stop.name} />
 
             {/* Adres + tijd (± want het is een geschatte aankomsttijd).
                 Zodra er ingecheckt is met een foto verdwijnen deze regels,
