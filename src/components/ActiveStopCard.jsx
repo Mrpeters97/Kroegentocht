@@ -82,16 +82,20 @@ export default function ActiveStopCard({ stop, index, total, direction = 1, onSw
               {stop.name}
             </h2>
 
-            {/* Adres + tijd (± want het is een geschatte aankomsttijd) */}
-            <div className="mt-4 flex flex-col items-center gap-1.5">
-              <p className="flex items-center gap-2 font-light text-[15px] text-ink/70">
-                <MapPin size={15} className="text-candy" />
-                {stop.address}
-              </p>
-              <p className="flex items-center gap-2 font-light text-[15px] text-ink/70">
-                <Clock size={15} className="text-candy" />± {stop.startTime}
-              </p>
-            </div>
+            {/* Adres + tijd (± want het is een geschatte aankomsttijd).
+                Zodra er ingecheckt is met een foto verdwijnen deze regels,
+                zodat de kaart inkrimpt en de tijdlijn onderaan blijft staan. */}
+            {!stop.photoCaptured && (
+              <div className="mt-4 flex flex-col items-center gap-1.5">
+                <p className="flex items-center gap-2 font-light text-[15px] text-ink/70">
+                  <MapPin size={15} className="text-candy" />
+                  {stop.address}
+                </p>
+                <p className="flex items-center gap-2 font-light text-[15px] text-ink/70">
+                  <Clock size={15} className="text-candy" />± {stop.startTime}
+                </p>
+              </div>
+            )}
 
             {/* Check-in */}
             <div className="mt-7">

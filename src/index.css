@@ -7,37 +7,21 @@
    Plaats de bestanden in /public/fonts/ met onderstaande namen.
    Zolang ze ontbreken valt de app netjes terug op system-ui.
    ────────────────────────────────────────────────────────────── */
-/* Gewone breedte (Regular) — voor alle lopende tekst. */
+/* WideMedium — voor alle titels (font-wide). */
 @font-face {
-  font-family: 'PPRightGrotesk';
-  src: url('/fonts/PPRightGroteskText-Regular.otf') format('opentype');
+  font-family: 'PPRightGrotesk-WideMedium';
+  src: url('/fonts/PPRightGrotesk-WideMedium.otf') format('opentype');
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
 
+/* Medium — voor alle overige tekst. */
 @font-face {
-  font-family: 'PPRightGrotesk';
-  src: url('/fonts/PPRightGroteskText-RegularItalic.otf') format('opentype');
-  font-weight: 100 900;
-  font-style: italic;
-  font-display: swap;
-}
-
-/* Wide breedte (WideBold) — alléén voor titels (font-wide). */
-@font-face {
-  font-family: 'PPRightGrotesk-Wide';
-  src: url('/fonts/PPRightGroteskText-WideBold.otf') format('opentype');
+  font-family: 'PPRightGrotesk-Medium';
+  src: url('/fonts/PPRightGrotesk-Medium.otf') format('opentype');
   font-weight: 100 900;
   font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'PPRightGrotesk-Wide';
-  src: url('/fonts/PPRightGroteskText-WideBoldItalic.otf') format('opentype');
-  font-weight: 100 900;
-  font-style: italic;
   font-display: swap;
 }
 
@@ -64,8 +48,8 @@ body {
     radial-gradient(90% 60% at 100% 110%, #1a1426 0%, transparent 60%);
   background-attachment: fixed;
   color: #f3eeff;
-  /* Standaard de gewone breedte; alleen titels gebruiken de Wide-variant. */
-  font-family: 'PPRightGrotesk', system-ui, sans-serif;
+  /* Medium voor alle lopende tekst; titels gebruiken WideMedium (font-wide). */
+  font-family: 'PPRightGrotesk-Medium', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior: none;
@@ -143,9 +127,8 @@ body {
   will-change: transform;
 }
 
-/* Dikkere, iets grotere titel "Verjaardagskroegentocht" */
+/* Titel op het natuurlijke medium-gewicht van PP Right Grotesk WideMedium,
+   zodat het karakter van de WideMedium-letters intact blijft (geen faux-bold). */
 .title-fat {
-  font-weight: 800;
-  -webkit-text-stroke: 0.6px currentColor;
-  paint-order: stroke fill;
+  font-weight: 500;
 }

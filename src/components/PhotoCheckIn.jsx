@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, Check, RefreshCw } from 'lucide-react'
+import { Camera, Check, RefreshCw, Download } from 'lucide-react'
 import { useRoute } from '../hooks/useRoute'
 import { burstConfetti, isPartyDay } from '../lib/celebrate'
-import { fileToResizedDataUrl } from '../lib/image'
+import { fileToResizedDataUrl, downloadDataUrl } from '../lib/image'
+import { buildPolaroidDataUrl } from '../lib/polaroid'
 
 // Foto-check-in met échte camera. We gebruiken een verborgen
 // <input type="file" capture> — op iPhone (Safari) én Android (Chrome)
@@ -13,7 +14,41 @@ export default function PhotoCheckIn({ stop }) {
   const { checkInPhoto, mockMinutes } = useRoute()
   const inputRef = useRef(null)
   const [capturing, setCapturing] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const [polaroid, setPolaroid] = useState(null)
   const captured = Boolean(stop.photoCaptured)
+
+  // Bouw de polaroid-preview zodra er een foto is (en herbouw bij wijziging).
+  // Deze preview is meteen óók wat je downloadt.
+  useEffect(() => {
+    let alive = true
+    if (!captured) {
+      setPolaroid(null)
+      return
+    }
+    buildPolaroidDataUrl({ photo: stop.photoCaptured })
+      .then((url) => alive && setPolaroid(url))
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [captured, stop.photoCaptured, stop.name])
+
+  // Download de (al gebouwde) polaroid; bouw 'm desnoods alsnog.
+  const handleDownload = async () => {
+    if (!captured || downloading) return
+    setDownloading(true)
+    try {
+      const url =
+        polaroid ||
+        (await buildPolaroidDataUrl({ photo: stop.photoCaptured }))
+      downloadDataUrl(url, `polaroid-${stop.id}.png`)
+    } catch {
+      /* niets te downloaden */
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   // Open de camera (klik door naar de verborgen file-input).
   const openCamera = () => {
@@ -72,24 +107,33 @@ export default function PhotoCheckIn({ stop }) {
             key="done"
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-3 rounded-2xl border border-white/20 bg-white/[0.09] p-3 backdrop-blur-md"
+            className="rounded-2xl border border-white/20 bg-white/[0.09] p-3 backdrop-blur-md"
           >
-            <img
-              src={stop.photoCaptured}
-              alt={`Foto bij ${stop.name}`}
-              className="h-14 w-14 rounded-xl object-cover"
-            />
-            <div className="flex-1">
-              <p className="flex items-center gap-1.5 font-medium text-[14px] text-candy">
+            <div className="flex items-center gap-3">
+              {/* Kleine foto-preview */}
+              <img
+                src={stop.photoCaptured}
+                alt={`Foto bij ${stop.name}`}
+                className="h-14 w-14 rounded-xl object-cover"
+              />
+              <p className="flex flex-1 items-center gap-1.5 font-medium text-[14px] text-candy">
                 <Check size={15} /> Ingecheckt
               </p>
-              <p className="font-light text-[12px] text-ink/50">Foto opgeslagen</p>
+              <button
+                onClick={openCamera}
+                className="flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 font-medium text-[12px] text-ink/70 active:scale-95"
+              >
+                <RefreshCw size={13} /> Opnieuw
+              </button>
             </div>
+
             <button
-              onClick={openCamera}
-              className="flex items-center gap-1 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 font-medium text-[12px] text-ink/70 active:scale-95"
+              onClick={handleDownload}
+              disabled={downloading}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-candy py-2.5 font-medium text-[14px] text-white shadow-candy active:scale-95 disabled:opacity-70"
             >
-              <RefreshCw size={13} /> Opnieuw
+              <Download size={16} />
+              {downloading ? 'Polaroid maken…' : 'Download als polaroid'}
             </button>
           </motion.div>
         ) : (

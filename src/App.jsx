@@ -88,7 +88,7 @@ function RouteScreen() {
             {!following && (
               <button
                 onClick={() => setFollowing(true)}
-                className="mx-auto mb-1 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 font-medium text-[11px] text-ink/70 backdrop-blur-md active:scale-95"
+                className="mx-auto mt-4 mb-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 font-medium text-[11px] text-ink/70 backdrop-blur-md active:scale-95"
               >
                 ↺ Volg de groep
               </button>

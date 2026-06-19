@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Download, PartyPopper } from 'lucide-react'
+import { PartyPopper } from 'lucide-react'
 import { useRoute } from '../hooks/useRoute'
 
 // Lichte, "willekeurige" rotatie per polaroid (deterministisch op index).
@@ -7,17 +7,6 @@ const rotations = [-5, 3, -2, 6, -4, 2, -6, 4, -3]
 
 export default function PolaroidWall() {
   const { stops, capturedPhotos } = useRoute()
-
-  const handleDownload = () => {
-    // In theorie: bundel de foto's en bied ze als download aan.
-    // Hier downloaden we de losse placeholders als demonstratie.
-    capturedPhotos.forEach((s, i) => {
-      const a = document.createElement('a')
-      a.href = s.photoCaptured
-      a.download = `verjaardagstocht-${i + 1}-${s.id}.jpg`
-      a.click()
-    })
-  }
 
   return (
     <motion.div
@@ -76,21 +65,6 @@ export default function PolaroidWall() {
             </motion.figure>
           ))}
         </div>
-      )}
-
-      {/* Download */}
-      {capturedPhotos.length > 0 && (
-        <motion.button
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 + capturedPhotos.length * 0.08 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={handleDownload}
-          className="mt-8 flex items-center justify-center gap-2.5 rounded-2xl bg-candy py-4 font-medium text-[16px] text-white shadow-candy"
-        >
-          <Download size={20} />
-          Download herinneringen
-        </motion.button>
       )}
 
       {/* Totaal aantal stops voor context */}

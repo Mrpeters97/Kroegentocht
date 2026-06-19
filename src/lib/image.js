@@ -26,3 +26,13 @@ export function fileToResizedDataUrl(file, maxSize = 1100, quality = 0.82) {
     img.src = url
   })
 }
+
+// Trigger een download van een data-URL met de gegeven bestandsnaam.
+export function downloadDataUrl(dataUrl, filename) {
+  const a = document.createElement('a')
+  a.href = dataUrl
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+}
