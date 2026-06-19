@@ -36,3 +36,36 @@ export function downloadDataUrl(dataUrl, filename) {
   a.click()
   a.remove()
 }
+
+// Zet een data-URL om naar een File-object.
+function dataUrlToFile(dataUrl, filename) {
+  const [meta, b64] = dataUrl.split(',')
+  const mime = (meta.match(/:(.*?);/) || [, 'image/png'])[1]
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new File([bytes], filename, { type: mime })
+}
+
+// Bewaar een afbeelding. Op de telefoon openen we het native deel-menu
+// (Web Share API met bestand), zodat de gebruiker 'm direct in z'n Foto's
+// kan opslaan i.p.v. eerst in de browser-downloads te belanden. Lukt dat
+// niet (desktop / geen ondersteuning), dan vallen we terug op een download.
+export async function savePolaroid(dataUrl, filename) {
+  try {
+    const file = dataUrlToFile(dataUrl, filename)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Polaroid' })
+        return
+      } catch (err) {
+        // Gebruiker sloot het deel-menu zelf → niets verder doen.
+        if (err && err.name === 'AbortError') return
+        // Anders: val terug op een gewone download.
+      }
+    }
+  } catch {
+    /* val terug op download */
+  }
+  downloadDataUrl(dataUrl, filename)
+}

@@ -1,8 +1,8 @@
-// Bouwt een downloadbare "polaroid" van een gemaakte foto: witte lijst,
-// de foto bovenin (vierkant), en onderin — gecentreerd in het witte
-// balkje — hetzelfde logo-lockup als in de header: de folie-"29" met het
-// uitgesneden hoofd (mét feesthoedje) ertussen, dat net iets over de foto
-// heen valt. Levert een PNG data-URL.
+// Bouwt een downloadbare 9:16-afbeelding: de feestelijke app-achtergrond
+// (donkere gloed + schuine slinger + zwevende ballonnen) met daarop een
+// licht schuingedraaide polaroid. In de polaroid de gemaakte foto (volledig
+// binnen het kader) en onderin het logo-lockup: de folie-"29" met het
+// uitgesneden hoofd (mét feesthoedje) ertussen. Levert een PNG data-URL.
 
 const HEAD_SRC = '/images/jarige.png'
 
@@ -23,13 +23,6 @@ function loadImg(src) {
     img.onerror = reject
     img.src = src
   })
-}
-
-function drawCover(ctx, img, x, y, w, h) {
-  const scale = Math.max(w / img.width, h / img.height)
-  const dw = img.width * scale
-  const dh = img.height * scale
-  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh)
 }
 
 function drawContain(ctx, img, x, y, w, h) {
@@ -119,51 +112,208 @@ function drawHat(ctx, baseCx, baseCy, scale, rotDeg) {
   ctx.restore()
 }
 
-export async function buildPolaroidDataUrl({ photo }) {
-  const W = 820
-  const border = 48
-  const photoSize = W - border * 2 // 724
-  const footerH = 250
-  const H = border + photoSize + footerH
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
 
-  const canvas = document.createElement('canvas')
-  canvas.width = W
-  canvas.height = H
-  const ctx = canvas.getContext('2d')
+// ── Feestelijke app-achtergrond op het canvas ──────────────────────────
+// Quadratische Bézier-slinger (zelfde control-punten als Garland.jsx).
+const G_P0 = [6, 20]
+const G_P1 = [172, 154]
+const G_P2 = [352, 162]
+const G_COLORS = ['#E879A6', '#7FB2E8', '#C9A8FF', '#7FE8C2', '#FFD27F']
+function gBezier(t) {
+  const u = 1 - t
+  return [
+    u * u * G_P0[0] + 2 * u * t * G_P1[0] + t * t * G_P2[0],
+    u * u * G_P0[1] + 2 * u * t * G_P1[1] + t * t * G_P2[1],
+  ]
+}
+function gTangentDeg(t) {
+  const dx = 2 * (1 - t) * (G_P1[0] - G_P0[0]) + 2 * t * (G_P2[0] - G_P1[0])
+  const dy = 2 * (1 - t) * (G_P1[1] - G_P0[1]) + 2 * t * (G_P2[1] - G_P1[1])
+  return (Math.atan2(dy, dx) * 180) / Math.PI
+}
 
-  ctx.fillStyle = '#ffffff'
+function drawGarland(ctx, W, H) {
+  ctx.save()
+  ctx.translate(0, H * 0.1)
+  const s = W / 360 // viewBox-breedte 360 → volledige canvasbreedte
+  ctx.scale(s, s)
+  // Touw
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)'
+  ctx.lineWidth = 1.6
+  ctx.lineCap = 'round'
+  ctx.beginPath()
+  ctx.moveTo(G_P0[0], G_P0[1])
+  ctx.quadraticCurveTo(G_P1[0], G_P1[1], G_P2[0], G_P2[1])
+  ctx.stroke()
+  // Vlaggetjes, elk gekanteld langs de helling van het touw
+  const N = 13
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1)
+    const [x, y] = gBezier(t)
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate((gTangentDeg(t) * Math.PI) / 180)
+    ctx.beginPath()
+    ctx.moveTo(-8, 1)
+    ctx.lineTo(8, 1)
+    ctx.lineTo(0, 17)
+    ctx.closePath()
+    ctx.fillStyle = G_COLORS[i % G_COLORS.length]
+    ctx.fill()
+    ctx.lineWidth = 0.6
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'
+    ctx.stroke()
+    ctx.restore()
+  }
+  ctx.restore()
+}
+
+// Eén zwevende 3D-ballon (lichaam + knoopje + touwtje).
+function drawBalloon(ctx, cx, cy, size, color, dark, rot) {
+  const w = size
+  const h = size * 1.22
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.rotate((rot * Math.PI) / 180)
+  // Lichaam met grondschaduw
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.4)'
+  ctx.shadowBlur = size * 0.3
+  ctx.shadowOffsetY = size * 0.18
+  const fx = -w * 0.16
+  const fy = -h * 0.23
+  const grad = ctx.createRadialGradient(fx, fy, w * 0.04, fx, fy, w * 0.85)
+  grad.addColorStop(0, 'rgba(255,255,255,0.85)')
+  grad.addColorStop(0.5, color)
+  grad.addColorStop(1, dark)
+  ctx.fillStyle = grad
+  ctx.beginPath()
+  ctx.ellipse(0, 0, w / 2, h / 2, 0, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.restore()
+  // Knoopje
+  ctx.fillStyle = dark
+  ctx.beginPath()
+  ctx.moveTo(0, h / 2 + size * 0.12)
+  ctx.lineTo(-size * 0.08, h / 2 - 1)
+  ctx.lineTo(size * 0.08, h / 2 - 1)
+  ctx.closePath()
+  ctx.fill()
+  // Touwtje
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'
+  ctx.lineWidth = size * 0.03
+  ctx.lineCap = 'round'
+  const sy = h / 2 + size * 0.14
+  ctx.beginPath()
+  ctx.moveTo(0, sy)
+  ctx.bezierCurveTo(-size * 0.12, sy + size * 0.18, size * 0.14, sy + size * 0.32, 0, sy + size * 0.5)
+  ctx.stroke()
+  ctx.restore()
+}
+
+function drawFestiveBackground(ctx, W, H) {
+  // Diep-donker canvas
+  ctx.fillStyle = '#0B0712'
   ctx.fillRect(0, 0, W, H)
+  // Subtiele paars/roze gloed (zoals de body-gradient)
+  let g = ctx.createRadialGradient(W * 0.5, -H * 0.1, 0, W * 0.5, -H * 0.1, W * 1.05)
+  g.addColorStop(0, '#1f1530')
+  g.addColorStop(0.55, 'rgba(31,21,48,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, W, H)
+  g = ctx.createRadialGradient(W, H * 1.1, 0, W, H * 1.1, W * 0.95)
+  g.addColorStop(0, '#1a1426')
+  g.addColorStop(0.6, 'rgba(26,20,38,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, W, H)
+  // Verre, onscherpe gloed-blobs
+  const sf = W / 390 // schaal t.o.v. de telefoon-viewport
+  const blobs = [
+    [-0.12, 0.06, 240, '#B85C8E', 0.16],
+    [0.72, 0.02, 180, '#5E7FB8', 0.14],
+    [0.78, 0.6, 260, '#7A5FB0', 0.16],
+    [-0.08, 0.66, 200, '#A86A9A', 0.14],
+  ]
+  ctx.save()
+  ctx.filter = 'blur(60px)'
+  for (const [x, y, s, c, op] of blobs) {
+    const d = s * sf
+    ctx.globalAlpha = op
+    ctx.fillStyle = c
+    ctx.beginPath()
+    ctx.arc(x * W + d / 2, y * H + d / 2, d / 2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  ctx.restore()
+  // Slinger
+  drawGarland(ctx, W, H)
+  // Zwevende ballonnen
+  const balloons = [
+    [0.06, 0.3, 64, '#FF7DAE', '#C24D80', -6],
+    [0.82, 0.24, 56, '#7FB2E8', '#3F6FB0', 7],
+    [0.7, 0.7, 76, '#C9A8FF', '#7E5BC2', -5],
+    [0.16, 0.74, 60, '#7FE8C2', '#3FAE89', 6],
+    [0.4, 0.84, 50, '#FFD27F', '#C99B3F', -4],
+    [0.9, 0.48, 44, '#FF9DC2', '#C95E8E', 8],
+    [-0.02, 0.5, 48, '#A6C2E6', '#5E7FB8', -8],
+  ]
+  for (const [x, y, s, color, dark, rot] of balloons) {
+    const d = s * sf
+    drawBalloon(ctx, x * W + d / 2, y * H + d / 2, d, color, dark, rot)
+  }
+}
 
-  // Foto bovenin
-  const photoImg = await loadImg(photo)
-  drawCover(ctx, photoImg, border, border, photoSize, photoSize)
+// ── De polaroid-kaart zelf (in lokale kaart-coördinaten, oorsprong 0,0) ──
+// Alleen wit papier + de foto; het logo komt los bovenop (drawLogo).
+function drawPolaroidCard(ctx, cardW, cardH, photoImg) {
+  // Wit papier mét slagschaduw (de schaduw valt op de achtergrond).
+  ctx.save()
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'
+  ctx.shadowBlur = 60
+  ctx.shadowOffsetY = 30
+  roundRect(ctx, 0, 0, cardW, cardH, 14)
+  ctx.fillStyle = '#ffffff'
+  ctx.fill()
+  ctx.restore()
+
+  // Klassieke polaroid: smalle rand boven/zijkant, iets dikkere onderrand.
+  const border = 40
+  const bottomBorder = 130
+  const areaX = border
+  const areaY = border
+  const areaW = cardW - border * 2
+  const areaH = cardH - border - bottomBorder
+
+  // Foto: volledig binnen het kader (contain), nooit afgesneden.
+  const fit = Math.min(areaW / photoImg.width, areaH / photoImg.height)
+  const pw = photoImg.width * fit
+  const ph = photoImg.height * fit
+  const px = areaX + (areaW - pw) / 2
+  const py = areaY + (areaH - ph) / 2
+  ctx.drawImage(photoImg, px, py, pw, ph)
   ctx.strokeStyle = 'rgba(0,0,0,0.08)'
   ctx.lineWidth = 1
-  ctx.strokeRect(border + 0.5, border + 0.5, photoSize - 1, photoSize - 1)
+  ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1)
+}
 
-  let head = null
-  try {
-    head = await loadImg(HEAD_SRC)
-  } catch {
-    /* geen hoofd beschikbaar */
-  }
-
-  const photoBottom = border + photoSize
-
-  // ── Logo-lockup: de folie-"29" met het hoofd ertussen, gecentreerd in
-  //    het witte balkje en net iets over de foto heen (zoals de header). ──
-  const digitH = 162
+// ── Het logo-lockup (folie-"29" + hoofd mét hoedje ertussen) ──
+// Tekent rond (cx, lockCenterY) in de huidige canvas-coördinaten.
+function drawLogo(ctx, cx, lockCenterY, digitH, head) {
   const dscale = digitH / DIG.h
-  // Verticaal middelpunt van de cijfers: zo gekozen dat het hoofd + hoedje
-  // net over de onderrand van de foto vallen, terwijl de cijfers mooi in het
-  // witte balkje staan.
-  const lockCenterY = photoBottom + 86
-
-  // Cijfers via Path2D met een roze folie-gradient. De lichte top van de
-  // header-folie is hier iets roziger gemaakt zodat de "29" leesbaar blijft
-  // op het witte papier.
   ctx.save()
-  ctx.translate(W / 2, lockCenterY)
+  ctx.shadowColor = 'rgba(190,52,110,0.55)'
+  ctx.shadowBlur = 30
+  ctx.shadowOffsetY = 18
+  ctx.translate(cx, lockCenterY)
   ctx.scale(dscale, dscale)
   ctx.translate(-DIG.cx, -DIG.cy)
   const foil = ctx.createLinearGradient(900, 680, 1750, 2488)
@@ -172,23 +322,65 @@ export async function buildPolaroidDataUrl({ photo }) {
   foil.addColorStop(0.52, '#F86FA8')
   foil.addColorStop(0.8, '#F0539A')
   foil.addColorStop(1, '#D23E7E')
+  const digits = new Path2D(TWO_PATH)
+  digits.addPath(new Path2D(NINE_PATH))
   ctx.fillStyle = foil
-  ctx.fill(new Path2D(TWO_PATH), 'evenodd')
-  ctx.fill(new Path2D(NINE_PATH), 'evenodd')
+  ctx.fill(digits, 'evenodd')
   ctx.restore()
 
-  // Hoofd tússen de cijfers, met dezelfde nudge als de header
-  // (iets links van het midden + iets omhoog).
   if (head) {
     const headSize = digitH * 0.96
-    const headCx = W / 2 - headSize * 0.06
+    const headCx = cx - headSize * 0.06
     const headCy = lockCenterY - headSize * 0.16
     const headX = headCx - headSize / 2
     const headY = headCy - headSize / 2
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,0.4)'
+    ctx.shadowBlur = 16
+    ctx.shadowOffsetY = 10
     drawContain(ctx, head, headX, headY, headSize, headSize)
-    // Hoedje bovenop het hoofd (schuin)
+    ctx.restore()
     drawHat(ctx, headX + headSize * 0.5, headY + headSize * 0.16, headSize * 0.016, 14)
   }
+}
+
+export async function buildPolaroidDataUrl({ photo }) {
+  // Vast 9:16 portret-formaat.
+  const W = 1080
+  const H = 1920
+
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')
+
+  // 1. Feestelijke achtergrond
+  drawFestiveBackground(ctx, W, H)
+
+  const photoImg = await loadImg(photo)
+  let head = null
+  try {
+    head = await loadImg(HEAD_SRC)
+  } catch {
+    /* geen hoofd beschikbaar */
+  }
+
+  // 2. Polaroid-kaart, licht schuin op de achtergrond. Iets naar onderen
+  //    geschoven zodat er bovenaan ruimte is voor het logo.
+  const cardW = 740
+  const cardH = 980
+  const cardCx = W / 2
+  const cardCy = H / 2 + 70
+  ctx.save()
+  ctx.translate(cardCx, cardCy)
+  ctx.rotate((-4.5 * Math.PI) / 180) // semi-schuin
+  ctx.translate(-cardW / 2, -cardH / 2)
+  drawPolaroidCard(ctx, cardW, cardH, photoImg)
+  ctx.restore()
+
+  // 3. Logo bovenaan — zoals in de app — dat net een klein stukje over de
+  //    bovenkant van de polaroid heen valt.
+  drawLogo(ctx, W / 2 - 16, 470, 250, head)
 
   return canvas.toDataURL('image/png')
 }

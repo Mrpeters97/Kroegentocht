@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Camera, Check, RefreshCw, Download } from 'lucide-react'
+import { Camera, Check, RefreshCw, Download, Share2 } from 'lucide-react'
 import { useRoute } from '../hooks/useRoute'
 import { burstConfetti, isPartyDay } from '../lib/celebrate'
-import { fileToResizedDataUrl, downloadDataUrl } from '../lib/image'
+import { fileToResizedDataUrl, savePolaroid } from '../lib/image'
 import { buildPolaroidDataUrl } from '../lib/polaroid'
 
 // Foto-check-in met échte camera. We gebruiken een verborgen
@@ -16,6 +17,7 @@ export default function PhotoCheckIn({ stop }) {
   const [capturing, setCapturing] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [polaroid, setPolaroid] = useState(null)
+  const [showPreview, setShowPreview] = useState(false)
   const captured = Boolean(stop.photoCaptured)
 
   // Bouw de polaroid-preview zodra er een foto is (en herbouw bij wijziging).
@@ -34,20 +36,28 @@ export default function PhotoCheckIn({ stop }) {
     }
   }, [captured, stop.photoCaptured, stop.name])
 
-  // Download de (al gebouwde) polaroid; bouw 'm desnoods alsnog.
-  const handleDownload = async () => {
+  // Open een preview van de polaroid; bouw 'm desnoods alsnog. Vanuit de
+  // preview kan de gebruiker 'm bewaren in z'n Foto's (deel-menu) of de
+  // afbeelding ingedrukt houden om 'm direct op te slaan.
+  const openPreview = async () => {
     if (!captured || downloading) return
     setDownloading(true)
     try {
       const url =
         polaroid ||
         (await buildPolaroidDataUrl({ photo: stop.photoCaptured }))
-      downloadDataUrl(url, `polaroid-${stop.id}.png`)
+      if (!polaroid) setPolaroid(url)
+      setShowPreview(true)
     } catch {
-      /* niets te downloaden */
+      /* niets te tonen */
     } finally {
       setDownloading(false)
     }
+  }
+
+  // Bewaar via het native deel-menu (→ "Bewaar afbeelding" / camerarol).
+  const handleSave = () => {
+    if (polaroid) savePolaroid(polaroid, `polaroid-${stop.id}.png`)
   }
 
   // Open de camera (klik door naar de verborgen file-input).
@@ -117,7 +127,7 @@ export default function PhotoCheckIn({ stop }) {
                 className="h-14 w-14 rounded-xl object-cover"
               />
               <p className="flex flex-1 items-center gap-1.5 font-medium text-[14px] text-candy">
-                <Check size={15} /> Ingecheckt
+                <Check size={15} /> Skitterend
               </p>
               <button
                 onClick={openCamera}
@@ -128,7 +138,7 @@ export default function PhotoCheckIn({ stop }) {
             </div>
 
             <button
-              onClick={handleDownload}
+              onClick={openPreview}
               disabled={downloading}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-candy py-2.5 font-medium text-[14px] text-white shadow-candy active:scale-95 disabled:opacity-70"
             >
@@ -160,6 +170,51 @@ export default function PhotoCheckIn({ stop }) {
           </motion.button>
         )}
       </AnimatePresence>
+
+      {/* Preview-overlay via een portal naar <body>, zodat hij niet binnen
+          een ge-transformeerde ouder (de kaart) gevangen zit maar écht het
+          hele scherm bedekt en gecentreerd wordt. Achtergrond wordt gedimd. */}
+      {createPortal(
+        <AnimatePresence>
+          {showPreview && polaroid && (
+            <motion.div
+              className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/85 p-5 backdrop-blur-md"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPreview(false)}
+            >
+              <motion.img
+                src={polaroid}
+                alt="Polaroid-preview"
+                onClick={(e) => e.stopPropagation()}
+                initial={{ scale: 0.92, y: 12 }}
+                animate={{ scale: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+                className="max-h-[72vh] w-auto rounded-2xl shadow-2xl"
+              />
+              <p className="mt-4 max-w-xs text-center font-light text-[12px] text-white/70">
+                Houd de afbeelding ingedrukt om 'm te bewaren, of tik hieronder.
+              </p>
+              <div className="mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={handleSave}
+                  className="flex items-center gap-2 rounded-full bg-candy px-5 py-2.5 font-medium text-[14px] text-white shadow-candy active:scale-95"
+                >
+                  <Share2 size={16} /> Bewaar in Foto's
+                </button>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="rounded-full border border-white/15 bg-white/[0.08] px-4 py-2.5 font-medium text-[14px] text-white/80 active:scale-95"
+                >
+                  Sluiten
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </div>
   )
 }

@@ -25,6 +25,15 @@
   font-display: swap;
 }
 
+/* WideBlack — extra dikke variant, voor de hoofdtitel. */
+@font-face {
+  font-family: 'PPRightGrotesk-WideBlack';
+  src: url('/fonts/PPRightGrotesk-WideBlack.otf') format('opentype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: dark;
 }
@@ -127,8 +136,8 @@ body {
   will-change: transform;
 }
 
-/* Titel op het natuurlijke medium-gewicht van PP Right Grotesk WideMedium,
-   zodat het karakter van de WideMedium-letters intact blijft (geen faux-bold). */
+/* Hoofdtitel in de extra dikke WideBlack-variant (echt vet, geen faux-bold). */
 .title-fat {
-  font-weight: 500;
+  font-family: 'PPRightGrotesk-WideBlack', system-ui, sans-serif;
+  font-weight: 900;
 }
